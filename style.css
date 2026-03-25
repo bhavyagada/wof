@@ -1,0 +1,107 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: radial-gradient(circle at 20% 30%, #0b2b3b, #03101a);
+  font-family: 'Segoe UI', 'Helvetica Neue', 'Poppins', system-ui, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(0.5rem, 4vw, 2rem) clamp(0.5rem, 3vw, 1rem);
+}
+
+.game {
+  width: 100%;
+  max-width: 1300px;
+  background: rgba(10, 25, 35, 0.7);
+  padding: clamp(1rem, 4vw, 2rem) clamp(1rem, 3vw, 1.5rem) clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.board {
+  background: linear-gradient(145deg, #0a2b3c, #021016);
+  border: 1px solid rgba(210, 180, 110, 0.4);
+  border-radius: clamp(1rem, 4vw, 3rem);
+  padding: clamp(0.5rem, 2vw, 1.2rem) clamp(0.5rem, 2vw, 1rem);
+  margin-bottom: clamp(1rem, 4vw, 2rem);
+  overflow-x: hidden;
+}
+
+.row, .tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.row {
+  gap: clamp(0.2rem, 1.2vw, 0.6rem);
+  margin: clamp(0.2rem, 1vh, 0.5rem) 0;
+  flex-wrap: nowrap;
+}
+
+.tile, .category, .solve-button {
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.tile {
+  width: calc((100% - (13 * clamp(0.2rem, 1.2vw, 0.6rem))) / 14);
+  aspect-ratio: 0.7 / 1;
+  background: linear-gradient(135deg, #fff6e8, #ffe6c7);
+  font-size: clamp(0.8rem, 4vw, 2.6rem);
+  color: #1f2c3c;
+  letter-spacing: 2px;
+}
+
+.tile.hidden {
+  background: radial-gradient(circle at 30% 35%, #2c7a4d, #145c32);
+  outline: 1px solid #98d9a4;
+  outline-offset: -1px;
+}
+
+.category-wrapper {
+  margin: 0 -1.5rem clamp(1rem, 4vw, 1.5rem);
+}
+
+.category-label, .category {
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.category-label {
+  font-size: clamp(0.6rem, 2vw, 0.85rem);
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: #fff;
+  background: rgba(0, 20, 30, 0.6);
+  padding: 0.25rem 0;
+}
+
+.category {
+  display: block;
+  background: linear-gradient(90deg, #2c7cb6, #0a3b55, #2c7cb6);
+  border-top: 2px solid rgba(100, 180, 240, 0.5);
+  border-bottom: 2px solid rgba(100, 180, 240, 0.5);
+  font-size: clamp(1rem, 5vw, 1.9rem);
+  letter-spacing: clamp(2px, 1vw, 5px);
+  color: #f0f9ff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+  padding: clamp(0.5rem, 3vw, 1rem);
+}
+
+.solve-button {
+  display: block;
+  margin: clamp(1rem, 4vw, 2rem) auto 0;
+  background: radial-gradient(circle at 30% 20%, #fedc5a, #e6a017);
+  border: none;
+  padding: clamp(0.6rem, 3vw, 1rem) clamp(1.2rem, 5vw, 2.6rem);
+  font-size: clamp(1rem, 5vw, 1.7rem);
+  letter-spacing: clamp(2px, 1vw, 4px);
+  color: #20251c;
+  cursor: pointer;
+  transition: 0.07s linear;
+}
+

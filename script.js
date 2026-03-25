@@ -4,9 +4,13 @@ const puzzleData = [
   { "puzzle": "airplane", "category": "in the sky" },
   { "puzzle": "perfectly popped popcorn kernels", "category": "food" },
   { "puzzle": "perfect pop popcorn", "category": "thing" },
+  { "puzzle": "rang de basanti", "category": "bollywood" },
 ];
+const { puzzle, category } = puzzleData[Math.floor(Math.random() * puzzleData.length)];
 
 let tileElements = [];
+let hiddenList = [];
+let revealIntervalId = null;
 
 function getBoard(puzzleText) {
   const words = puzzleText.toUpperCase().split(" ");
@@ -33,14 +37,13 @@ function getBoard(puzzleText) {
     for (let i = 0; i < line.length; i++) {
       board[currentRow][1 + padding + i] = (line[i] !== " ") ? line[i] : "";
     }
-
     currentRow++;
   }
   return board;
-};
+}
 
 function render(puzzle) {
-  const board = document.getElementById('board');
+  const board = document.querySelector(".board");
   board.innerHTML = "";
   tileElements = [];
 
@@ -56,18 +59,17 @@ function render(puzzle) {
 
       if (letter === "") {
         tile.classList.add("hidden");
+        tile.textContent = "";
       } else {
         tile.textContent = " ";
         tile.dataset.letter = letter;
       }
-
       rowDiv.appendChild(tile);
       tileRow.push(tile);
     }
     board.appendChild(rowDiv);
     tileElements.push(tileRow);
   }
-  console.log(tileElements);
 }
 
 function buildHiddenList(board) {
@@ -82,32 +84,59 @@ function buildHiddenList(board) {
 }
 
 function reveal(hiddenList) {
-  if (hiddenList.length === 0) return;
-  for (let i = hiddenList.length - 1; i > 0; i--) {
+  if (revealIntervalId) clearInterval(revealIntervalId);
+  if (!hiddenList.length) return;
+  const shuffled = [...hiddenList];
+  for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [hiddenList[i], hiddenList[j]] = [hiddenList[j], hiddenList[i]];
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
 
   let index = 0;
-  const intervalId = setInterval(() => {
-    if (index >= hiddenList.length) {
-      clearInterval(intervalId);
-      alert("try again next time");
+  revealIntervalId = setInterval(() => {
+    if (index >= shuffled.length) {
+      clearInterval(revealIntervalId);
+      revealIntervalId = null;
       return;
     }
-    const [row, col, ch] = hiddenList[index];
-    const tile = tileElements[row][col];
-    if (tile) tile.textContent = ch;
+    const [row, col, ch] = shuffled[index];
+    const tile = tileElements[row]?.[col];
+    if (tile && tile.textContent !== ch) tile.textContent = ch;
     index++;
   }, 1000);
 }
 
-// **** INIT
-const { puzzle, category } = puzzleData[Math.floor(Math.random() * puzzleData.length)];
-const categoryText = document.getElementById('category-text');
-categoryText.textContent = category.toUpperCase();
-const grid = getBoard(puzzle);
-render(grid);
-const hiddenList = buildHiddenList(grid);
-reveal(hiddenList);
+function attachSolveListener() {
+  const solveBtn = document.querySelector(".solve-button");
+  if (!solveBtn) return;
+  solveBtn.addEventListener('click', () => {
+    let userGuess = prompt("Type your solution (the full phrase):");
+    if (userGuess === null) return;
+    userGuess = userGuess.trim().toUpperCase();
+    if (userGuess === puzzle.toUpperCase()) {
+      alert("Congratulations! You solved the puzzle!");
+      if (revealIntervalId) {
+        clearInterval(revealIntervalId);
+        revealIntervalId = null;
+      }
+      for (let i = 0; i < hiddenList.length; i++) {
+        const [row, col, ch] = hiddenList[i];
+        const tile = tileElements[row]?.[col];
+        if (tile && tile.textContent !== ch) tile.textContent = ch;
+      }
+    } else {
+      alert(`Incorrect answer: "${userGuess}". Keep guessing!`);
+    }
+  });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  // **** INIT
+  document.querySelector(".category").textContent = category.toUpperCase();
+  const grid = getBoard(puzzle);
+  render(grid);
+  hiddenList = buildHiddenList(grid);
+  reveal(hiddenList);
+  attachSolveListener();
+});
 

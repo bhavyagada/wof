@@ -1,19 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="index.css">
-    <script type="module" src="index.js" defer></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wheel of Fortune</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
   </head>
-
   <body>
-    <div class="game">
-      <div id="board" class="board"></div>
-      <div class="category">
-        <span id="category-text"></span>
+    <main class="game">
+      <div class="board"></div>
+      <div class="category-wrapper">
+        <div class="category-label">CATEGORY</div>
+        <span class="category"></span>
       </div>
-    </div>
+      <button class="solve-button">SOLVE</button>
+    </main>
   </body>
 </html>
+
