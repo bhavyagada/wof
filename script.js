@@ -25,7 +25,7 @@ function getBoard(puzzleText) {
     let lineLength = 0;
 
     while (idx < words.length) {
-      const newLength = lineLength + (lineLength > 0 ? 1 : 0) + words[idx].length;
+      const newLength = lineLength + (lineLength ? 1 : 0) + words[idx].length;
       if (newLength > width) break;
       lineWords.push(words[idx]);
       lineLength = newLength;
@@ -35,14 +35,14 @@ function getBoard(puzzleText) {
     const line = lineWords.join(" ");
     const padding = Math.floor((width - line.length) / 2);
     for (let i = 0; i < line.length; i++) {
-      board[currentRow][1 + padding + i] = (line[i] !== " ") ? line[i] : "";
+      board[currentRow][1 + padding + i] = line[i] !== " " ? line[i] : "";
     }
     currentRow++;
   }
   return board;
 }
 
-function render(puzzle) {
+function render(boardData) {
   const board = document.querySelector(".board");
   board.innerHTML = "";
   tileElements = [];
@@ -55,15 +55,7 @@ function render(puzzle) {
     for (let col = 0; col < rowSizes[row]; col++) {
       const tile = document.createElement("div");
       tile.className = "tile";
-      const letter = puzzle[row][col];
-
-      if (letter === "") {
-        tile.classList.add("hidden");
-        tile.textContent = "";
-      } else {
-        tile.textContent = " ";
-        tile.dataset.letter = letter;
-      }
+      if (boardData[row][col] === "") tile.classList.add("hidden");
       rowDiv.appendChild(tile);
       tileRow.push(tile);
     }
@@ -73,14 +65,14 @@ function render(puzzle) {
 }
 
 function buildHiddenList(board) {
-  const hiddenList = [];
+  const list = [];
   for (let row = 0; row < board.length; row++) {
     for (let col = 0; col < board[row].length; col++) {
       const ch = board[row][col];
-      if (ch !== "") hiddenList.push([row, col, ch]);
+      if (ch !== "") list.push([row, col, ch]);
     }
   }
-  return hiddenList;
+  return list;
 }
 
 function reveal(hiddenList) {
@@ -101,42 +93,34 @@ function reveal(hiddenList) {
     }
     const [row, col, ch] = shuffled[index];
     const tile = tileElements[row]?.[col];
-    if (tile && tile.textContent !== ch) tile.textContent = ch;
+    if (tile) tile.textContent = ch;
     index++;
   }, 1000);
 }
 
-function attachSolveListener() {
-  const solveBtn = document.querySelector(".solve-button");
-  if (!solveBtn) return;
-  solveBtn.addEventListener('click', () => {
-    let userGuess = prompt("Type your solution (the full phrase):");
-    if (userGuess === null) return;
-    userGuess = userGuess.trim().toUpperCase();
-    if (userGuess === puzzle.toUpperCase()) {
-      alert("Congratulations! You solved the puzzle!");
-      if (revealIntervalId) {
-        clearInterval(revealIntervalId);
-        revealIntervalId = null;
-      }
-      for (let i = 0; i < hiddenList.length; i++) {
-        const [row, col, ch] = hiddenList[i];
-        const tile = tileElements[row]?.[col];
-        if (tile && tile.textContent !== ch) tile.textContent = ch;
-      }
-    } else {
-      alert(`Incorrect answer: "${userGuess}". Keep guessing!`);
+document.querySelector(".solve-button").addEventListener('click', () => {
+  let userGuess = prompt("Type your solution (the full phrase):");
+  if (userGuess === null) return;
+  userGuess = userGuess.trim().toUpperCase();
+  if (userGuess === puzzle.toUpperCase()) {
+    alert("Congratulations! You solved the puzzle!");
+    if (revealIntervalId) {
+      clearInterval(revealIntervalId);
+      revealIntervalId = null;
     }
-  });
-}
-
-window.addEventListener('DOMContentLoaded', () => {
-  // **** INIT
-  document.querySelector(".category").textContent = category.toUpperCase();
-  const grid = getBoard(puzzle);
-  render(grid);
-  hiddenList = buildHiddenList(grid);
-  reveal(hiddenList);
-  attachSolveListener();
+    for (const [row, col, ch] of hiddenList) {
+      const tile = tileElements[row]?.[col];
+      if (tile) tile.textContent = ch;
+    }
+  } else {
+    alert(`Incorrect answer: "${userGuess}". Keep guessing!`);
+  }
 });
+
+// **** INIT
+document.querySelector(".category").textContent = category.toUpperCase();
+const grid = getBoard(puzzle);
+render(grid);
+hiddenList = buildHiddenList(grid);
+reveal(hiddenList);
 
