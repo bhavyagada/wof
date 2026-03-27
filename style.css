@@ -54,12 +54,40 @@ body {
   font-size: clamp(0.8rem, 4vw, 2.6rem);
   color: #1f2c3c;
   letter-spacing: 2px;
+  cursor: pointer;
+  position: relative;
 }
 
 .tile.hidden {
   background: radial-gradient(circle at 30% 35%, #2c7a4d, #145c32);
   outline: 1px solid #98d9a4;
   outline-offset: -1px;
+}
+
+.tile[contenteditable="true"] {
+  cursor: text;
+  background: linear-gradient(135deg, #fffae6, #fff0d0);
+  outline: none;
+  caret-color: transparent;
+}
+
+.tile[contenteditable="true"]:focus {
+  outline: none;
+  background: #fff5e0;
+}
+
+.tile[contenteditable="true"]:empty::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #0044ff;
+  animation: tileBlink 1s steps(1) infinite;
+  pointer-events: none;
+}
+
+@keyframes tileBlink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
 }
 
 .category-wrapper {
