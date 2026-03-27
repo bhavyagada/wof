@@ -1,126 +1,256 @@
-const rowSizes = [12, 14, 14, 12];
+const row_sizes = [12, 14, 14, 12];
 // TODO: fetch from database
-const puzzleData = [
-  { "puzzle": "airplane", "category": "in the sky" },
-  { "puzzle": "perfectly popped popcorn kernels", "category": "food" },
-  { "puzzle": "perfect pop popcorn", "category": "thing" },
-  { "puzzle": "rang de basanti", "category": "bollywood" },
+const puzzle_data = [
+  { puzzle: "airplane", category: "in the sky" },
+  { puzzle: "perfectly popped popcorn kernels", category: "food" },
+  { puzzle: "perfect pop popcorn", category: "thing" },
+  { puzzle: "rang de basanti", category: "bollywood" },
 ];
-const { puzzle, category } = puzzleData[Math.floor(Math.random() * puzzleData.length)];
 
-let tileElements = [];
-let hiddenList = [];
-let revealIntervalId = null;
+let tile_elements = [];
+let hidden_list = [];
+let reveal_interval_id = null;
+let revealed = new Set();
+let solve_mode = false;
+let active_tile_ref = null; // {row, col, tile, handler, original_text, has_changed}
+let solve_tiles_cleanup = [];
+let user_edited = new Set();
 
-function getBoard(puzzleText) {
-  const words = puzzleText.toUpperCase().split(" ");
-  const board = rowSizes.map(size => Array(size).fill(""));
+function get_board(puzzle_text) {
+  const words = puzzle_text.toUpperCase().split(" ");
+  const board = row_sizes.map((size) => Array(size).fill(""));
+  const start_row = puzzle_text.length <= 24 ? 1 : 0; // for centering short phrases
 
   let idx = 0;
-  let currentRow = puzzleText.length <= 24 ? 1 : 0; // for centering short phrases
-
-  while (idx < words.length && currentRow < rowSizes.length) {
-    const width = rowSizes[currentRow] - 2;
-    const lineWords = [];
-    let lineLength = 0;
+  for (let row = start_row; row < row_sizes.length && idx < words.length; row++) {
+    const width = row_sizes[row] - 2;
+    const line_words = [];
+    let line_length = 0;
 
     while (idx < words.length) {
-      const newLength = lineLength + (lineLength ? 1 : 0) + words[idx].length;
-      if (newLength > width) break;
-      lineWords.push(words[idx]);
-      lineLength = newLength;
+      const new_length = line_length + (line_length ? 1 : 0) + words[idx].length;
+      if (new_length > width) break;
+      line_words.push(words[idx]);
+      line_length = new_length;
       idx++;
     }
 
-    const line = lineWords.join(" ");
+    const line = line_words.join(" ");
     const padding = Math.floor((width - line.length) / 2);
     for (let i = 0; i < line.length; i++) {
-      board[currentRow][1 + padding + i] = line[i] !== " " ? line[i] : "";
+      board[row][1 + padding + i] = line[i] === " " ? "" : line[i];
     }
-    currentRow++;
   }
+
   return board;
 }
 
-function render(boardData) {
+function render(board_data) {
   const board = document.querySelector(".board");
   board.innerHTML = "";
-  tileElements = [];
+  tile_elements = [];
 
-  for (let row = 0; row < rowSizes.length; row++) {
-    const rowDiv = document.createElement("div");
-    rowDiv.className = "row";
-    const tileRow = [];
+  row_sizes.forEach((size, row) => {
+    const row_div = document.createElement("div");
+    row_div.className = "row";
 
-    for (let col = 0; col < rowSizes[row]; col++) {
+    const tile_row = Array.from({ length: size }, (_, col) => {
       const tile = document.createElement("div");
       tile.className = "tile";
-      if (boardData[row][col] === "") tile.classList.add("hidden");
-      rowDiv.appendChild(tile);
-      tileRow.push(tile);
-    }
-    board.appendChild(rowDiv);
-    tileElements.push(tileRow);
-  }
+      if (board_data[row][col] === "") tile.classList.add("hidden");
+      row_div.appendChild(tile);
+      return tile;
+    });
+
+    board.appendChild(row_div);
+    tile_elements.push(tile_row);
+  });
 }
 
-function buildHiddenList(board) {
-  const list = [];
-  for (let row = 0; row < board.length; row++) {
-    for (let col = 0; col < board[row].length; col++) {
-      const ch = board[row][col];
-      if (ch !== "") list.push([row, col, ch]);
-    }
-  }
-  return list;
+function build_hidden_list(grid) {
+  return grid.flatMap((row, rid) => row.flatMap((ch, cid) => ch !== "" ? [[rid, cid, ch]] : []));
 }
 
-function reveal(hiddenList) {
-  if (revealIntervalId) clearInterval(revealIntervalId);
-  if (!hiddenList.length) return;
-  const shuffled = [...hiddenList];
+function stop_reveal() {
+  if (reveal_interval_id) clearInterval(reveal_interval_id);
+  reveal_interval_id = null;
+}
+
+function start_reveal() {
+  stop_reveal();
+  if (!hidden_list.length) return;
+
+  const shuffled = [...hidden_list];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
 
   let index = 0;
-  revealIntervalId = setInterval(() => {
-    if (index >= shuffled.length) {
-      clearInterval(revealIntervalId);
-      revealIntervalId = null;
-      return;
-    }
+  reveal_interval_id = setInterval(() => {
+    if (index >= shuffled.length) return stop_reveal();
+
     const [row, col, ch] = shuffled[index];
-    const tile = tileElements[row]?.[col];
-    if (tile) tile.textContent = ch;
+    const tile = tile_elements[row]?.[col];
+    if (tile?.textContent.trim() === "") {
+      tile.textContent = ch;
+      revealed.add(`${row},${col}`);
+    }
     index++;
   }, 1000);
 }
 
-document.querySelector(".solve-button").addEventListener('click', () => {
-  let userGuess = prompt("Type your solution (the full phrase):");
-  if (userGuess === null) return;
-  userGuess = userGuess.trim().toUpperCase();
-  if (userGuess === puzzle.toUpperCase()) {
-    alert("Congratulations! You solved the puzzle!");
-    if (revealIntervalId) {
-      clearInterval(revealIntervalId);
-      revealIntervalId = null;
-    }
-    for (const [row, col, ch] of hiddenList) {
-      const tile = tileElements[row]?.[col];
-      if (tile) tile.textContent = ch;
-    }
+function check_full_puzzle() {
+  const correct = hidden_list.every(([row, col, expected]) => tile_elements[row][col].textContent === expected);
+  if (correct) {
+    alert("CORRECT!");
+    exit_solve_mode();
   } else {
-    alert(`Incorrect answer: "${userGuess}". Keep guessing!`);
+    alert("INCORRECT! Keep guessing!");
+    for (const coord of user_edited) {
+      const [row, col] = coord.split(",").map(Number);
+      tile_elements[row][col].textContent = "";
+    }
+    user_edited.clear();
+    exit_solve_mode();
+    start_reveal();
+  }
+}
+
+function get_empty_editable_tile() {
+  for (const [row, col] of hidden_list) {
+    if (!revealed.has(`${row},${col}`) && tile_elements[row][col].textContent.trim() === "") return { row, col };
+  }
+  return null;
+}
+
+function deactivate_active_tile() {
+  if (!active_tile_ref) return;
+
+  const { tile, key_handler, original_text, has_changed } = active_tile_ref;
+
+  tile.removeEventListener("keydown", key_handler);
+
+  if (!has_changed && original_text !== "" && tile.textContent.trim() === "") {
+    tile.textContent = original_text;
+  }
+
+  tile.removeAttribute("contenteditable");
+  tile.classList.remove("editing");
+
+  active_tile_ref = null;
+}
+
+function activate_tile(row, col) {
+  if (!solve_mode) return;
+  if (revealed.has(`${row},${col}`)) return;
+
+  const tile = tile_elements[row][col];
+  if (!tile) return;
+
+  if (active_tile_ref && active_tile_ref.row === row && active_tile_ref.col === col) {
+    tile.textContent = "";
+    tile.focus();
+    return;
+  }
+
+  const previous_text = tile.textContent.trim();
+
+  deactivate_active_tile();
+
+  tile.setAttribute("contenteditable", "true");
+  tile.classList.add("editing");
+
+  if (previous_text !== "") tile.textContent = "";
+
+  tile.focus();
+
+  const key_handler = (e) => {
+    if (!solve_mode) return;
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      deactivate_active_tile();
+      check_full_puzzle();
+      return;
+    }
+
+    if (/^[a-zA-Z]$/i.test(e.key)) {
+      e.preventDefault();
+      tile.textContent = e.key.toUpperCase();
+      if (active_tile_ref) {
+        active_tile_ref.has_changed = true;
+        user_edited.add(`${row},${col}`);
+      }
+
+      const next = get_empty_editable_tile();
+      if (next) {
+        activate_tile(next.row, next.col);
+      } else {
+        deactivate_active_tile();
+        check_full_puzzle();
+      }
+    }
+  };
+
+  tile.addEventListener("keydown", key_handler);
+  active_tile_ref = { row, col, tile, key_handler, original_text: previous_text, has_changed: false, };
+}
+
+function exit_solve_mode() {
+  if (!solve_mode) return;
+
+  solve_mode = false;
+  deactivate_active_tile();
+
+  solve_tiles_cleanup.forEach(({ tile, handler }) => tile.removeEventListener("click", handler));
+  solve_tiles_cleanup = [];
+  user_edited.clear();
+}
+
+document.querySelector(".solve-button").addEventListener("click", () => {
+  if (solve_mode) return;
+
+  solve_mode = true;
+  stop_reveal();
+
+  solve_tiles_cleanup.forEach(({ tile, handler }) => tile.removeEventListener("click", handler));
+  solve_tiles_cleanup = [];
+
+  for (const [row, col] of hidden_list) {
+    if (revealed.has(`${row},${col}`)) continue;
+    const tile = tile_elements[row][col];
+    const handler = () => {
+      if (!solve_mode) return;
+      activate_tile(row, col);
+    };
+
+    tile.addEventListener("click", handler);
+    solve_tiles_cleanup.push({ tile, handler });
+  }
+
+  const first = get_empty_editable_tile();
+  if (first) {
+    activate_tile(first.row, first.col);
+  } else {
+    alert("There are no editable tiles left.");
+    solve_mode = false;
   }
 });
 
 // **** INIT
+exit_solve_mode();
+stop_reveal();
+
+const { puzzle, category } = puzzle_data[Math.floor(Math.random() * puzzle_data.length)];
 document.querySelector(".category").textContent = category.toUpperCase();
-const grid = getBoard(puzzle);
+
+const grid = get_board(puzzle);
 render(grid);
-hiddenList = buildHiddenList(grid);
-reveal(hiddenList);
+
+hidden_list = build_hidden_list(grid);
+revealed.clear();
+active_tile_ref = null;
+
+start_reveal();
 
