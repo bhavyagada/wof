@@ -13,7 +13,6 @@ let reveal_interval_id = null;
 let revealed = new Set();
 let solve_mode = false;
 let active_tile_ref = null; // {row, col, tile, handler, original_text, has_changed}
-let solve_tiles_cleanup = [];
 let user_edited = new Set();
 
 function get_board(puzzle_text) {
@@ -57,6 +56,8 @@ function render(board_data) {
     const tile_row = Array.from({ length: size }, (_, col) => {
       const tile = document.createElement("div");
       tile.className = "tile";
+      tile.dataset.row = row;
+      tile.dataset.col = col;
       if (board_data[row][col] === "") tile.classList.add("hidden");
       row_div.appendChild(tile);
       return tile;
@@ -76,11 +77,11 @@ function stop_reveal() {
   reveal_interval_id = null;
 }
 
-function start_reveal() {
+function start_reveal(reveal_list = hidden_list) {
   stop_reveal();
-  if (!hidden_list.length) return;
+  if (!reveal_list.length) return;
 
-  const shuffled = [...hidden_list];
+  const shuffled = [...reveal_list];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
@@ -104,7 +105,6 @@ function check_full_puzzle() {
   const correct = hidden_list.every(([row, col, expected]) => tile_elements[row][col].textContent === expected);
   if (correct) {
     alert("CORRECT!");
-    exit_solve_mode();
   } else {
     alert("INCORRECT! Keep guessing!");
     for (const coord of user_edited) {
@@ -112,9 +112,10 @@ function check_full_puzzle() {
       tile_elements[row][col].textContent = "";
     }
     user_edited.clear();
-    exit_solve_mode();
-    start_reveal();
+    const unrevealed_list = hidden_list.filter(([row, col]) => !revealed.has(`${row},${col}`));
+    start_reveal(unrevealed_list);
   }
+  exit_solve_mode();
 }
 
 function get_empty_editable_tile() {
@@ -199,35 +200,24 @@ function activate_tile(row, col) {
 
 function exit_solve_mode() {
   if (!solve_mode) return;
-
   solve_mode = false;
   deactivate_active_tile();
-
-  solve_tiles_cleanup.forEach(({ tile, handler }) => tile.removeEventListener("click", handler));
-  solve_tiles_cleanup = [];
   user_edited.clear();
 }
+
+document.querySelector(".board").addEventListener("click", (e) => {
+  if (!solve_mode) return;
+  const tile = e.target.closest(".tile");
+  const { row, col } = tile?.dataset ?? {};
+  if (!tile || !row || !col || revealed.has(`${row},${col}`)) return;
+  activate_tile(Number(row), Number(col));
+});
 
 document.querySelector(".solve-button").addEventListener("click", () => {
   if (solve_mode) return;
 
   solve_mode = true;
   stop_reveal();
-
-  solve_tiles_cleanup.forEach(({ tile, handler }) => tile.removeEventListener("click", handler));
-  solve_tiles_cleanup = [];
-
-  for (const [row, col] of hidden_list) {
-    if (revealed.has(`${row},${col}`)) continue;
-    const tile = tile_elements[row][col];
-    const handler = () => {
-      if (!solve_mode) return;
-      activate_tile(row, col);
-    };
-
-    tile.addEventListener("click", handler);
-    solve_tiles_cleanup.push({ tile, handler });
-  }
 
   const first = get_empty_editable_tile();
   if (first) {
@@ -252,5 +242,5 @@ hidden_list = build_hidden_list(grid);
 revealed.clear();
 active_tile_ref = null;
 
-start_reveal();
+start_reveal(hidden_list);
 
