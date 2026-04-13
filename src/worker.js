@@ -73,7 +73,7 @@ const chatHTML = `<!DOCTYPE html>
     <button id="send">Send</button>
 
     <script>
-      const ws = new WebSocket(\`ws://chat.bsgada.workers.dev/chat\`);
+      const ws = new WebSocket(\`ws://\${window.location.host}/chat\`);
       const statusDiv = document.getElementById('status');
       const messagesDiv = document.getElementById('messages');
       const input = document.getElementById('message-input');
