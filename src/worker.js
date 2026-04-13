@@ -1,4 +1,57 @@
-import { Chat } from './chat.js';
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+
+    if (url.pathname === '/chat') {
+      if (request.headers.get('Upgrade') === 'websocket') {
+        const roomName = 'global';
+        const id = env.ROOM.idFromName(roomName);
+        const room = env.ROOM.get(id);
+        return room.fetch(request);
+      }
+
+      // Serve chat HTML inline (or you could keep it separate)
+      return new Response(chatHTML, {
+        headers: { 'Content-Type': 'text/html' }
+      });
+    }
+
+    return new Response('Not found', { status: 404 });
+  }
+};
+
+// ----- Durable Object -----
+export class Chat {
+  constructor(state, env) {
+    this.sessions = new Map();
+    this.state = state;
+  }
+
+  async fetch(request) {
+    try {
+      const pair = new WebSocketPair();
+      const [client, server] = Object.values(pair);
+      this.sessions.set(server, { id: crypto.randomUUID() });
+      this.state.acceptWebSocket(server);
+      return new Response(null, { status: 101, webSocket: client });
+    } catch (err) {
+      console.error('Durable Object fetch error:', err);
+      return new Response(`WebSocket upgrade failed: ${err.message}`, { status: 500 });
+    }
+  }
+
+  async webSocketMessage(ws, message) {
+    for (const [other] of this.sessions.entries()) {
+      if (other !== ws) {
+        other.send(message);
+      }
+    }
+  }
+
+  async webSocketClose(ws) {
+    this.sessions.delete(ws);
+  }
+}
 
 const chatHTML = `<!DOCTYPE html>
 <html>
@@ -57,25 +110,3 @@ const chatHTML = `<!DOCTYPE html>
   </body>
 </html>`;
 
-export default {
-  async fetch(request, env) {
-    const url = new URL(request.url);
-
-    if (url.pathname === '/chat') {
-      if (request.headers.get('Upgrade') === 'websocket') {
-        const roomName = 'global';
-        const id = env.ROOM.idFromName(roomName);
-        const room = env.ROOM.get(id);
-        return room.fetch(request);
-      }
-
-      return new Response(chatHTML, {
-        headers: { 'Content-Type': 'text/html' }
-      });
-    }
-    
-    return new Response('Not found', { status: 404 });
-  }
-};
-
-export { Chat };
