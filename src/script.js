@@ -1,3 +1,5 @@
+import './style.css';
+
 const row_sizes = [12, 14, 14, 12];
 // TODO: fetch from database
 const puzzle_data = [

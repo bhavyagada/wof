@@ -18,7 +18,7 @@
     <button id="send">Send</button>
 
     <script>
-      const ws = new WebSocket(`ws://${window.location.host}/chat`);
+      const ws = new WebSocket(`ws://${window.location.host}/ws`);
       const statusDiv = document.getElementById('status');
       const messagesDiv = document.getElementById('messages');
       const input = document.getElementById('message-input');
