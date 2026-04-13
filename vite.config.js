@@ -4,8 +4,8 @@ import { resolve } from 'path';
 export default defineConfig({
   server: {
     proxy: {
-      '/ws': {
-        target: 'http://localhost:3000',
+      '/chat': {
+        target: 'http://localhost:8787',
         ws: true,
         changeOrigin: true,
       }
