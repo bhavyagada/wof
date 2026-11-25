@@ -9,11 +9,13 @@ const puzzle_data = [
   { puzzle: "rang de basanti", category: "bollywood" },
 ];
 
+let deck = [];
 let tile_elements = [];
 let hidden_list = [];
 let reveal_interval_id = null;
 let revealed = new Set();
 let solve_mode = false;
+let round_over = false;
 let active_tile_ref = null; // {row, col, tile, handler, original_text, has_changed}
 let user_edited = new Set();
 
@@ -79,19 +81,28 @@ function stop_reveal() {
   reveal_interval_id = null;
 }
 
+function shuffle(list) {
+  const copy = [...list];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
 function start_reveal(reveal_list = hidden_list) {
   stop_reveal();
-  if (!reveal_list.length) return;
+  if (!reveal_list.length) return end_round();
 
-  const shuffled = [...reveal_list];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-
+  const shuffled = shuffle(reveal_list);
   let index = 0;
   reveal_interval_id = setInterval(() => {
-    if (index >= shuffled.length) return stop_reveal();
+    if (index >= shuffled.length) {
+      stop_reveal();
+      message_element.textContent = "PUZZLE REVEALED!";
+      end_round();
+      return;
+    }
 
     const [row, col, ch] = shuffled[index];
     const tile = tile_elements[row]?.[col];
@@ -106,16 +117,16 @@ function start_reveal(reveal_list = hidden_list) {
 function check_full_puzzle() {
   const correct = hidden_list.every(([row, col, expected]) => tile_elements[row][col].textContent === expected);
   if (correct) {
-    alert("CORRECT!");
+    message_element.textContent = "CORRECT!";
+    end_round();
   } else {
-    alert("INCORRECT! Keep guessing!");
+    message_element.textContent = "INCORRECT - KEEP GUESSING!";
     for (const coord of user_edited) {
       const [row, col] = coord.split(",").map(Number);
       tile_elements[row][col].textContent = "";
     }
     user_edited.clear();
-    const unrevealed_list = hidden_list.filter(([row, col]) => !revealed.has(`${row},${col}`));
-    start_reveal(unrevealed_list);
+    start_reveal(hidden_list.filter(([row, col]) => !revealed.has(`${row},${col}`)));
   }
   exit_solve_mode();
 }
@@ -130,11 +141,11 @@ function get_empty_editable_tile() {
 function deactivate_active_tile() {
   if (!active_tile_ref) return;
 
-  const { tile, key_handler, original_text, has_changed } = active_tile_ref;
+  const { tile, key_handler, original_text } = active_tile_ref;
 
   tile.removeEventListener("keydown", key_handler);
 
-  if (!has_changed && original_text !== "" && tile.textContent.trim() === "") {
+  if (original_text !== "" && tile.textContent.trim() === "") {
     tile.textContent = original_text;
   }
 
@@ -181,10 +192,7 @@ function activate_tile(row, col) {
     if (/^[a-zA-Z]$/i.test(e.key)) {
       e.preventDefault();
       tile.textContent = e.key.toUpperCase();
-      if (active_tile_ref) {
-        active_tile_ref.has_changed = true;
-        user_edited.add(`${row},${col}`);
-      }
+      user_edited.add(`${row},${col}`);
 
       const next = get_empty_editable_tile();
       if (next) {
@@ -197,7 +205,7 @@ function activate_tile(row, col) {
   };
 
   tile.addEventListener("keydown", key_handler);
-  active_tile_ref = { row, col, tile, key_handler, original_text: previous_text, has_changed: false, };
+  active_tile_ref = { row, col, tile, key_handler, original_text: previous_text };
 }
 
 function exit_solve_mode() {
@@ -215,34 +223,43 @@ document.querySelector(".board").addEventListener("click", (e) => {
   activate_tile(Number(row), Number(col));
 });
 
-document.querySelector(".solve-button").addEventListener("click", () => {
+const solve_button = document.querySelector(".solve-button");
+const message_element = document.querySelector(".message");
+
+function end_round() {
+  round_over = true;
+  solve_button.textContent = "NEXT PUZZLE";
+}
+
+function start_new_game() {
+  stop_reveal();
+  revealed.clear();
+  round_over = false;
+  solve_button.textContent = "SOLVE";
+  message_element.textContent = "";
+
+  if (!deck.length) deck = shuffle(puzzle_data);
+  const { puzzle, category } = deck.pop();
+  document.querySelector(".category").textContent = category.toUpperCase();
+
+  const grid = get_board(puzzle);
+  render(grid);
+  hidden_list = build_hidden_list(grid);
+
+  start_reveal();
+}
+
+solve_button.addEventListener("click", () => {
+  if (round_over) return start_new_game();
   if (solve_mode) return;
 
   solve_mode = true;
   stop_reveal();
 
   const first = get_empty_editable_tile();
-  if (first) {
-    activate_tile(first.row, first.col);
-  } else {
-    alert("There are no editable tiles left.");
-    solve_mode = false;
-  }
+  if (first) activate_tile(first.row, first.col);
 });
 
 // **** INIT
-exit_solve_mode();
-stop_reveal();
-
-const { puzzle, category } = puzzle_data[Math.floor(Math.random() * puzzle_data.length)];
-document.querySelector(".category").textContent = category.toUpperCase();
-
-const grid = get_board(puzzle);
-render(grid);
-
-hidden_list = build_hidden_list(grid);
-revealed.clear();
-active_tile_ref = null;
-
-start_reveal(hidden_list);
+start_new_game();
 
