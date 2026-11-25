@@ -1,12 +1,17 @@
 import './style.css';
 
 const row_sizes = [12, 14, 14, 12];
+const max_puzzles = 3;
 // TODO: fetch from database
 const puzzle_data = [
-  { puzzle: "airplane", category: "in the sky" },
-  { puzzle: "perfectly popped popcorn kernels", category: "food" },
-  { puzzle: "perfect pop popcorn", category: "thing" },
-  { puzzle: "rang de basanti", category: "bollywood" },
+  { puzzle: "you only live once", category: "phrase" },
+  { puzzle: "the painted desert", category: "place" },
+  { puzzle: "gourmet cheese shop", category: "place" },
+  { puzzle: "grading papers", category: "what are you doing" },
+  { puzzle: "following directions", category: "what are you doing" },
+  { puzzle: "fourth of july", category: "event" },
+  { puzzle: "mardi gras", category: "event" },
+  { puzzle: "kentucky bluegrass", category: "living thing" },
 ];
 
 let deck = [];
@@ -238,7 +243,7 @@ function start_new_game() {
   solve_button.textContent = "SOLVE";
   message_element.textContent = "";
 
-  if (!deck.length) deck = shuffle(puzzle_data);
+  if (!deck.length) deck = shuffle(puzzle_data).slice(0, max_puzzles);
   const { puzzle, category } = deck.pop();
   document.querySelector(".category").textContent = category.toUpperCase();
 
