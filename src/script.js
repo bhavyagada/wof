@@ -27,11 +27,12 @@ let user_edited = new Set();
 function get_board(puzzle_text) {
   const words = puzzle_text.toUpperCase().split(" ");
   const board = row_sizes.map((size) => Array(size).fill(""));
+  const margin = 1; // blank tiles framing each row
   const start_row = puzzle_text.length <= 24 ? 1 : 0; // for centering short phrases
 
   let idx = 0;
   for (let row = start_row; row < row_sizes.length && idx < words.length; row++) {
-    const width = row_sizes[row] - 2;
+    const width = row_sizes[row] - 2 * margin;
     const line_words = [];
     let line_length = 0;
 
@@ -46,7 +47,7 @@ function get_board(puzzle_text) {
     const line = line_words.join(" ");
     const padding = Math.floor((width - line.length) / 2);
     for (let i = 0; i < line.length; i++) {
-      board[row][1 + padding + i] = line[i] === " " ? "" : line[i];
+      board[row][margin + padding + i] = line[i] === " " ? "" : line[i];
     }
   }
 
@@ -155,7 +156,6 @@ function deactivate_active_tile() {
   }
 
   tile.removeAttribute("contenteditable");
-  tile.classList.remove("editing");
 
   active_tile_ref = null;
 }
@@ -163,6 +163,7 @@ function deactivate_active_tile() {
 function activate_tile(row, col) {
   if (!solve_mode) return;
   if (revealed.has(`${row},${col}`)) return;
+  if (!hidden_list.some(([r, c]) => r === row && c === col)) return;
 
   const tile = tile_elements[row][col];
   if (!tile) return;
@@ -178,7 +179,6 @@ function activate_tile(row, col) {
   deactivate_active_tile();
 
   tile.setAttribute("contenteditable", "true");
-  tile.classList.add("editing");
 
   if (previous_text !== "") tile.textContent = "";
 
