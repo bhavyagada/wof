@@ -15,6 +15,7 @@ body {
 }
 
 .game {
+  position: relative;
   width: 100%;
   max-width: 1300px;
   background: rgba(10, 25, 35, 0.7);
@@ -22,12 +23,17 @@ body {
 }
 
 .board {
+  /* keep in sync with row_sizes in script.js */
+  --cols: 14;
+  --gap: clamp(0.2rem, 1.2vw, 0.6rem);
   background: linear-gradient(145deg, #0a2b3c, #021016);
   border: 1px solid rgba(210, 180, 110, 0.4);
   border-radius: clamp(1rem, 4vw, 3rem);
   padding: clamp(0.5rem, 2vw, 1.2rem) clamp(0.5rem, 2vw, 1rem);
   margin-bottom: clamp(1rem, 4vw, 2rem);
   overflow-x: hidden;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .row, .tile {
@@ -37,7 +43,7 @@ body {
 }
 
 .row {
-  gap: clamp(0.2rem, 1.2vw, 0.6rem);
+  gap: var(--gap);
   margin: clamp(0.2rem, 1vh, 0.5rem) 0;
   flex-wrap: nowrap;
 }
@@ -48,14 +54,16 @@ body {
 }
 
 .tile {
-  width: calc((100% - (13 * clamp(0.2rem, 1.2vw, 0.6rem))) / 14);
+  width: calc((100% - (13 * var(--gap))) / var(--cols));
   aspect-ratio: 0.7 / 1;
   background: linear-gradient(135deg, #fff6e8, #ffe6c7);
   font-size: clamp(0.8rem, 4vw, 2.6rem);
   color: #1f2c3c;
-  letter-spacing: 2px;
+  letter-spacing: clamp(0px, 0.4vw, 2px);
   cursor: pointer;
   position: relative;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .tile.hidden {
@@ -71,12 +79,7 @@ body {
   caret-color: transparent;
 }
 
-.tile[contenteditable="true"]:focus {
-  outline: none;
-  background: #fff5e0;
-}
-
-.tile[contenteditable="true"]:empty::before {
+.tile[contenteditable="true"]::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -91,7 +94,7 @@ body {
 }
 
 .category-wrapper {
-  margin: 0 -1.5rem clamp(1rem, 4vw, 1.5rem);
+  margin: 0 calc(-1 * clamp(1rem, 3vw, 1.5rem)) clamp(1rem, 4vw, 1.5rem);
 }
 
 .category-label, .category {
@@ -118,6 +121,17 @@ body {
   color: #f0f9ff;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
   padding: clamp(0.5rem, 3vw, 1rem);
+}
+
+.message {
+  display: block;
+  min-height: 1.5em;
+  text-align: center;
+  text-transform: uppercase;
+  font-weight: 800;
+  font-size: clamp(0.9rem, 3.5vw, 1.4rem);
+  letter-spacing: 2px;
+  color: #ffd76a;
 }
 
 .solve-button {

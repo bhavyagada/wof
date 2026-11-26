@@ -3,18 +3,33 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script type="module" src="/src/script.js" defer></script>
     <title>Wheel of Fortune</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #000;
+      }
+      .new-game-button {
+        display: block;
+        background: radial-gradient(circle at 30% 20%, #fedc5a, #e6a017);
+        border: none;
+        padding: clamp(0.6rem, 3vw, 1rem) clamp(1.2rem, 5vw, 2.6rem);
+        font-family: 'Segoe UI', 'Helvetica Neue', 'Poppins', system-ui, sans-serif;
+        font-weight: 800;
+        text-transform: uppercase;
+        font-size: clamp(1rem, 5vw, 1.7rem);
+        letter-spacing: clamp(2px, 1vw, 4px);
+        color: #20251c;
+        cursor: pointer;
+        text-decoration: none;
+      }
+    </style>
   </head>
   <body>
-    <main class="game">
-      <div class="board"></div>
-      <div class="category-wrapper">
-        <div class="category-label">CATEGORY</div>
-        <span class="category"></span>
-      </div>
-      <button class="solve-button">SOLVE</button>
-    </main>
+    <a class="new-game-button" href="/game.html">NEW GAME</a>
   </body>
 </html>
-
