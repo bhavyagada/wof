@@ -15,6 +15,7 @@ body {
 }
 
 .game {
+  position: relative;
   width: 100%;
   max-width: 1300px;
   background: rgba(10, 25, 35, 0.7);
@@ -78,12 +79,7 @@ body {
   caret-color: transparent;
 }
 
-.tile[contenteditable="true"]:focus {
-  outline: none;
-  background: #fff5e0;
-}
-
-.tile[contenteditable="true"]:empty::before {
+.tile[contenteditable="true"]::before {
   content: "";
   position: absolute;
   inset: 0;

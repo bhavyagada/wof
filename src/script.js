@@ -1,7 +1,7 @@
 import './style.css';
 
 const row_sizes = [12, 14, 14, 12];
-const max_puzzles = 3;
+const max_puzzles = 1;
 // TODO: fetch from database
 const puzzle_data = [
   { puzzle: "you only live once", category: "phrase" },
@@ -21,8 +21,9 @@ let reveal_interval_id = null;
 let revealed = new Set();
 let solve_mode = false;
 let round_over = false;
-let active_tile_ref = null; // {row, col, tile, handler, original_text, has_changed}
+let active_tile_ref = null; // {row, col, tile, key_handler}
 let user_edited = new Set();
+let message_timeout_id = null;
 
 function get_board(puzzle_text) {
   const words = puzzle_text.toUpperCase().split(" ");
@@ -87,6 +88,12 @@ function stop_reveal() {
   reveal_interval_id = null;
 }
 
+function show_message(text, duration = 2000) {
+  message_element.textContent = text;
+  clearTimeout(message_timeout_id);
+  message_timeout_id = setTimeout(() => (message_element.textContent = ""), duration);
+}
+
 function shuffle(list) {
   const copy = [...list];
   for (let i = copy.length - 1; i > 0; i--) {
@@ -105,7 +112,7 @@ function start_reveal(reveal_list = hidden_list) {
   reveal_interval_id = setInterval(() => {
     if (index >= shuffled.length) {
       stop_reveal();
-      message_element.textContent = "PUZZLE REVEALED!";
+      show_message("PUZZLE REVEALED!");
       end_round();
       return;
     }
@@ -113,6 +120,7 @@ function start_reveal(reveal_list = hidden_list) {
     const [row, col, ch] = shuffled[index];
     const tile = tile_elements[row]?.[col];
     if (tile?.textContent.trim() === "") {
+      if (active_tile_ref?.row === row && active_tile_ref?.col === col) deactivate_active_tile();
       tile.textContent = ch;
       revealed.add(`${row},${col}`);
     }
@@ -123,18 +131,17 @@ function start_reveal(reveal_list = hidden_list) {
 function check_full_puzzle() {
   const correct = hidden_list.every(([row, col, expected]) => tile_elements[row][col].textContent === expected);
   if (correct) {
-    message_element.textContent = "CORRECT!";
+    show_message("CORRECT!");
     end_round();
-  } else {
-    message_element.textContent = "INCORRECT - KEEP GUESSING!";
-    for (const coord of user_edited) {
-      const [row, col] = coord.split(",").map(Number);
-      tile_elements[row][col].textContent = "";
-    }
-    user_edited.clear();
-    start_reveal(hidden_list.filter(([row, col]) => !revealed.has(`${row},${col}`)));
+    return;
   }
-  exit_solve_mode();
+  show_message("INCORRECT - KEEP GUESSING!");
+  for (const coord of user_edited) {
+    const [row, col] = coord.split(",").map(Number);
+    tile_elements[row][col].textContent = "";
+  }
+  user_edited.clear();
+  start_reveal(hidden_list.filter(([row, col]) => !revealed.has(`${row},${col}`)));
 }
 
 function get_empty_editable_tile() {
@@ -147,14 +154,9 @@ function get_empty_editable_tile() {
 function deactivate_active_tile() {
   if (!active_tile_ref) return;
 
-  const { tile, key_handler, original_text } = active_tile_ref;
+  const { tile, key_handler } = active_tile_ref;
 
   tile.removeEventListener("keydown", key_handler);
-
-  if (original_text !== "" && tile.textContent.trim() === "") {
-    tile.textContent = original_text;
-  }
-
   tile.removeAttribute("contenteditable");
 
   active_tile_ref = null;
@@ -169,19 +171,13 @@ function activate_tile(row, col) {
   if (!tile) return;
 
   if (active_tile_ref && active_tile_ref.row === row && active_tile_ref.col === col) {
-    tile.textContent = "";
     tile.focus();
     return;
   }
 
-  const previous_text = tile.textContent.trim();
-
   deactivate_active_tile();
 
   tile.setAttribute("contenteditable", "true");
-
-  if (previous_text !== "") tile.textContent = "";
-
   tile.focus();
 
   const key_handler = (e) => {
@@ -191,6 +187,24 @@ function activate_tile(row, col) {
       e.preventDefault();
       deactivate_active_tile();
       check_full_puzzle();
+      return;
+    }
+
+    if (e.key === "Backspace") {
+      e.preventDefault();
+      if (tile.textContent !== "") {
+        tile.textContent = "";
+        return;
+      }
+      const index = hidden_list.findIndex(([r, c]) => r === row && c === col);
+      for (let i = index - 1; i >= 0; i--) {
+        const [r, c] = hidden_list[i];
+        if (revealed.has(`${r},${c}`)) continue;
+        tile_elements[r][c].textContent = "";
+        deactivate_active_tile();
+        activate_tile(r, c);
+        return;
+      }
       return;
     }
 
@@ -210,7 +224,7 @@ function activate_tile(row, col) {
   };
 
   tile.addEventListener("keydown", key_handler);
-  active_tile_ref = { row, col, tile, key_handler, original_text: previous_text };
+  active_tile_ref = { row, col, tile, key_handler };
 }
 
 function exit_solve_mode() {
@@ -233,7 +247,14 @@ const message_element = document.querySelector(".message");
 
 function end_round() {
   round_over = true;
+  if (!deck.length) {
+    setTimeout(() => {
+      if (!deck.length) location.href = "/";
+    }, 2000);
+    return;
+  }
   solve_button.textContent = "NEXT PUZZLE";
+  exit_solve_mode();
 }
 
 function start_new_game() {
@@ -256,13 +277,12 @@ function start_new_game() {
 
 solve_button.addEventListener("click", () => {
   if (round_over) return start_new_game();
-  if (solve_mode) return;
 
   solve_mode = true;
   stop_reveal();
 
-  const first = get_empty_editable_tile();
-  if (first) activate_tile(first.row, first.col);
+  const ref = active_tile_ref ?? get_empty_editable_tile();
+  if (ref) activate_tile(ref.row, ref.col);
 });
 
 // **** INIT
